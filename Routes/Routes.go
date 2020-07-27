@@ -1,6 +1,7 @@
 package Routes
 
 import (
+	"go-api/Config"
 	"go-api/Controllers"
 	"go-api/Middleware"
 	"log"
@@ -8,12 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//SetupRouter ... Configure routes
-func SetupRouter() *gin.Engine {
+func InitGin() {
 	authMiddleware, err := Middleware.Auth()
 
 	if err != nil {
-		log.Fatal("JWT Error:" + err.Error())
+		log.Fatal("JWT Error: " + err.Error())
 	}
 
 	r := gin.New()
@@ -36,5 +36,6 @@ func SetupRouter() *gin.Engine {
 		auth.PUT("user/:id", Controllers.UpdateUser)
 		auth.DELETE("user/:id", Controllers.DeleteUser)
 	}
-	return r
+
+	r.Run(":" + Config.GetEnvKey("API_GIN_PORT"))
 }
