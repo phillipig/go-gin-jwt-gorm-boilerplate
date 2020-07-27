@@ -3,26 +3,23 @@ package Middleware
 import (
 	"time"
 
-	"github.com/appleboy/gin-jwt/v2"
+	"go-api/Models"
+	"go-api/Repositories"
+
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 )
 
-var identityKey = "id"
+var identityKey = "login"
 
 type login struct {
 	Username string `form:"username" json:"username" binding:"required"`
 	Password string `form:"password" json:"password" binding:"required"`
 }
 
-type user struct {
-	UserName  string
-	FirstName string
-	LastName  string
-}
-
 func Auth() (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
-		
+
 		Realm:       "go-api",
 		Key:         []byte("secretkey"),
 		Timeout:     time.Hour,
@@ -30,9 +27,9 @@ func Auth() (*jwt.GinJWTMiddleware, error) {
 		IdentityKey: identityKey,
 
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
-			if v, ok := data.(*user); ok {
+			if v, ok := data.(*Models.User); ok {
 				return jwt.MapClaims{
-					identityKey: v.UserName,
+					identityKey: v.Login,
 				}
 			}
 			return jwt.MapClaims{}
@@ -40,33 +37,34 @@ func Auth() (*jwt.GinJWTMiddleware, error) {
 
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
-			return &user{
-				UserName: claims[identityKey].(string),
+			return &Models.User{
+				Login: claims[identityKey].(string),
 			}
 		},
 
 		Authenticator: func(c *gin.Context) (interface{}, error) {
-			var loginVals login
-			if err := c.ShouldBind(&loginVals); err != nil {
+			var json login
+			if err := c.ShouldBind(&json); err != nil {
 				return "", jwt.ErrMissingLoginValues
 			}
-			userID := loginVals.Username
-			password := loginVals.Password
 
-			if (userID == "admin" && password == "admin") || (userID == "test" && password == "test") {
-				return &user{
-					UserName:  userID,
-					LastName:  "Bo-Yi",
-					FirstName: "Wu",
-				}, nil
+			var user Models.User
+			if err := Repositories.LoginUser(&user, json.Username); err == nil {
+				if user.Senha == json.Password {
+					return &user, nil
+				}
 			}
 
 			return nil, jwt.ErrFailedAuthentication
 		},
 
 		Authorizator: func(data interface{}, c *gin.Context) bool {
-			if v, ok := data.(*user); ok && v.UserName == "admin" {
-				return true
+			token, ok := data.(*Models.User)
+			if ok {
+				var user Models.User
+				if err := Repositories.LoginUser(&user, token.Login); err == nil {
+					return true
+				}
 			}
 
 			return false
