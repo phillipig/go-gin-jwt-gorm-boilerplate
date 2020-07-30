@@ -8,6 +8,7 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var identityKey = "login"
@@ -17,13 +18,18 @@ type login struct {
 	Password string `form:"password" json:"password" binding:"required"`
 }
 
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
 func Auth() (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
 
 		Realm:       "go-api",
 		Key:         []byte("secretkey"),
-		Timeout:     time.Hour,
-		MaxRefresh:  time.Hour,
+		Timeout:     time.Hour * 24,
+		MaxRefresh:  time.Hour * 24,
 		IdentityKey: identityKey,
 
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
@@ -50,7 +56,7 @@ func Auth() (*jwt.GinJWTMiddleware, error) {
 
 			var user Models.User
 			if err := Repositories.LoginUser(&user, json.Username); err == nil {
-				if user.Senha == json.Password {
+				if CheckPasswordHash(json.Password, user.Senha) {
 					return &user, nil
 				}
 			}

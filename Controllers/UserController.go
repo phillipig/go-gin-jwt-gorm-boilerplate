@@ -7,9 +7,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
-//GetUsers ... Get all users
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
 func GetUsers(c *gin.Context) {
 	var user []Models.User
 	err := Repositories.GetAllUsers(&user)
@@ -20,10 +25,10 @@ func GetUsers(c *gin.Context) {
 	}
 }
 
-//CreateUser ... Create User
 func CreateUser(c *gin.Context) {
 	var user Models.User
 	c.BindJSON(&user)
+	user.Senha, _ = HashPassword(user.Senha)
 	err := Repositories.CreateUser(&user)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -33,7 +38,6 @@ func CreateUser(c *gin.Context) {
 	}
 }
 
-//GetUserByID ... Get the user by id
 func GetUserByID(c *gin.Context) {
 	id := c.Params.ByName("id")
 	var user Models.User
@@ -45,7 +49,6 @@ func GetUserByID(c *gin.Context) {
 	}
 }
 
-//UpdateUser ... Update the user information
 func UpdateUser(c *gin.Context) {
 	var user Models.User
 	id := c.Params.ByName("id")
@@ -54,6 +57,7 @@ func UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusNotFound, user)
 	}
 	c.BindJSON(&user)
+	user.Senha, _ = HashPassword(user.Senha)
 	err = Repositories.UpdateUser(&user, id)
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
@@ -62,7 +66,6 @@ func UpdateUser(c *gin.Context) {
 	}
 }
 
-//DeleteUser ... Delete the user
 func DeleteUser(c *gin.Context) {
 	var user Models.User
 	id := c.Params.ByName("id")
