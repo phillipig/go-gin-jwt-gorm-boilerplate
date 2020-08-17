@@ -1,19 +1,15 @@
 package main
 
 import (
-	"go-api/Config"
-	"go-api/Databases"
-	"go-api/Routes"
+	"go-api/databases"
+	"go-api/routes"
 )
 
 func main() {
-	//Env
-	Config.InitEnv()
+	//GORM
+	mysql := databases.NewMysql()
+	defer mysql.Close()
 
-	//Gorm
-	Databases.InitMysql()
-	defer Databases.Mysql.Close()
-
-	//Gin
-	Routes.InitGin()
+	//Gin Gonic
+	routes.NewGin()
 }

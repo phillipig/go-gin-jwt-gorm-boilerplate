@@ -1,16 +1,17 @@
-package Routes
+package routes
 
 import (
-	"go-api/Config"
-	"go-api/Controllers"
-	"go-api/Middleware"
+	"go-api/config"
+	"go-api/controllers"
+	"go-api/middleware"
 	"log"
 
 	"github.com/gin-gonic/gin"
 )
 
-func InitGin() {
-	authMiddleware, err := Middleware.Auth()
+func NewGin() {
+	authMiddleware, err := middleware.Auth()
+	env := config.NewEnv()
 
 	if err != nil {
 		log.Fatal("JWT Error: " + err.Error())
@@ -19,23 +20,25 @@ func InitGin() {
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
-	r.Use(Middleware.Cors())
+	r.Use(middleware.Cors())
+
+	r.POST("/login", authMiddleware.LoginHandler)
+
+	//User
+	user := r.Group("/user")
+	user.Use(authMiddleware.MiddlewareFunc())
+	{
+		controller := controllers.NewUserController()
+		user.GET("", controller.ReadAll)
+		user.POST("", controller.Create)
+		user.GET("/:id", controller.ReadByID)
+		user.PUT("/:id", controller.Update)
+		user.DELETE("/:id", controller.Delete)
+	}
 
 	r.NoRoute(authMiddleware.MiddlewareFunc(), func(c *gin.Context) {
 		c.JSON(404, gin.H{"message": "Route not found"})
 	})
 
-	r.POST("/login", authMiddleware.LoginHandler)
-
-	auth := r.Group("/user-api")
-	auth.Use(authMiddleware.MiddlewareFunc())
-	{
-		auth.GET("user", Controllers.GetUsers)
-		auth.POST("user", Controllers.CreateUser)
-		auth.GET("user/:id", Controllers.GetUserByID)
-		auth.PUT("user/:id", Controllers.UpdateUser)
-		auth.DELETE("user/:id", Controllers.DeleteUser)
-	}
-
-	r.Run(":" + Config.GetEnvKey("API_GIN_PORT"))
+	r.Run(":" + env.GetEnvKey("API_GIN_PORT"))
 }

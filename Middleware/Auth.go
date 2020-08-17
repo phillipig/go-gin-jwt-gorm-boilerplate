@@ -1,10 +1,10 @@
-package Middleware
+package middleware
 
 import (
 	"time"
 
-	"go-api/Models"
-	"go-api/Repositories"
+	"go-api/models"
+	"go-api/repositories"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -18,12 +18,13 @@ type login struct {
 	Password string `form:"password" json:"password" binding:"required"`
 }
 
-func CheckPasswordHash(password, hash string) bool {
+func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
 func Auth() (*jwt.GinJWTMiddleware, error) {
+	rep := repositories.NewUserRepository()
 	return jwt.New(&jwt.GinJWTMiddleware{
 
 		Realm:       "go-api",
@@ -33,7 +34,7 @@ func Auth() (*jwt.GinJWTMiddleware, error) {
 		IdentityKey: identityKey,
 
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
-			if v, ok := data.(*Models.User); ok {
+			if v, ok := data.(*models.User); ok {
 				return jwt.MapClaims{
 					identityKey: v.Login,
 				}
@@ -43,7 +44,7 @@ func Auth() (*jwt.GinJWTMiddleware, error) {
 
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
-			return &Models.User{
+			return &models.User{
 				Login: claims[identityKey].(string),
 			}
 		},
@@ -54,9 +55,9 @@ func Auth() (*jwt.GinJWTMiddleware, error) {
 				return "", jwt.ErrMissingLoginValues
 			}
 
-			var user Models.User
-			if err := Repositories.LoginUser(&user, json.Username); err == nil {
-				if CheckPasswordHash(json.Password, user.Senha) {
+			var user models.User
+			if err := rep.LoginUser(&user, json.Username); err == nil {
+				if checkPasswordHash(json.Password, user.Senha) {
 					return &user, nil
 				}
 			}
@@ -65,10 +66,10 @@ func Auth() (*jwt.GinJWTMiddleware, error) {
 		},
 
 		Authorizator: func(data interface{}, c *gin.Context) bool {
-			token, ok := data.(*Models.User)
+			token, ok := data.(*models.User)
 			if ok {
-				var user Models.User
-				if err := Repositories.LoginUser(&user, token.Login); err == nil {
+				var user models.User
+				if err := rep.LoginUser(&user, token.Login); err == nil {
 					return true
 				}
 			}
