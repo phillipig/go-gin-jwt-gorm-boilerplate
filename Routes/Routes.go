@@ -17,6 +17,10 @@ func NewGin() {
 		log.Fatal("JWT Error: " + err.Error())
 	}
 
+	if env.GetEnvKeyBool("GIN_RELEASEMODE") {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
