@@ -7,8 +7,7 @@ import (
 
 func main() {
 	//GORM
-	mysql := databases.NewMysql()
-	defer mysql.Close()
+	databases.NewMysql()
 
 	//Gin Gonic
 	routes.NewGin()

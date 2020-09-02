@@ -6,8 +6,8 @@ import (
 	"go-api/models"
 	"sync"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
+	_ "gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
