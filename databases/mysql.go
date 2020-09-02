@@ -2,7 +2,7 @@ package databases
 
 import (
 	"fmt"
-	"go-api/config"
+	"go-api/configs"
 	"go-api/models"
 	"log"
 	"sync"
@@ -15,15 +15,15 @@ import (
 
 var once sync.Once
 var db *gorm.DB
-var env config.EnvMap
+var env configs.EnvMap
 var err error
 
 func NewMysql() *gorm.DB {
 	once.Do(func() {
-		env = config.NewEnv()
+		env = configs.NewEnv()
 		db, err = connect()
 		if err == nil {
-			configs()
+			config()
 			migrations()
 		} else {
 			log.Fatal("GORM: ", err)
@@ -41,7 +41,8 @@ func connect() (*gorm.DB, error) {
 		DontSupportRenameColumn:   true,  // use change when rename column, rename rename not supported before MySQL 8, MariaDB
 		SkipInitializeWithVersion: false, // smart configure based on used version
 	}), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger:      logger.Default.LogMode(logger.Info),
+		PrepareStmt: true,
 	})
 }
 
@@ -56,11 +57,12 @@ func url() string {
 	)
 }
 
-func configs() {
-	sqlDB, _ := db.DB()                 // Get generic database object sql.DB to use its functions
-	sqlDB.SetMaxIdleConns(1)            // SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
-	sqlDB.SetMaxOpenConns(10)           // SetMaxOpenConns sets the maximum number of open connections to the database.
-	sqlDB.SetConnMaxLifetime(time.Hour) //SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+func config() {
+	sqlDB, _ := db.DB()                   // Get generic database object sql.DB to use its functions
+	sqlDB.SetMaxIdleConns(1)              // SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
+	sqlDB.SetMaxOpenConns(10)             // SetMaxOpenConns sets the maximum number of open connections to the database.
+	sqlDB.SetConnMaxIdleTime(time.Minute) // SetConnMaxIdleTime sets the maximum idle time a connection may be reused.
+	sqlDB.SetConnMaxLifetime(time.Hour)   // SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
 }
 
 func migrations() {

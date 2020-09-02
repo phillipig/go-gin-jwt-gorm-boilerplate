@@ -1,17 +1,17 @@
 package routes
 
 import (
-	"go-api/config"
+	"go-api/configs"
 	"go-api/controllers"
-	"go-api/middleware"
+	"go-api/middlewares"
 	"log"
 
 	"github.com/gin-gonic/gin"
 )
 
 func NewGin() {
-	authMiddleware, err := middleware.Auth()
-	env := config.NewEnv()
+	authMiddleware, err := middlewares.Auth()
+	env := configs.NewEnv()
 
 	if err != nil {
 		log.Fatal("JWT Error: " + err.Error())
@@ -24,7 +24,7 @@ func NewGin() {
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
-	r.Use(middleware.Cors())
+	r.Use(middlewares.Cors())
 
 	r.POST("/login", authMiddleware.LoginHandler)
 
